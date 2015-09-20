@@ -15,7 +15,7 @@ RUN mv /etc/ldap /etc/ldap.dist
 
 EXPOSE 389
 
-VOLUME ["/etc/ldap", "/var/lib/ldap", "/var/run/slapd/ldapi"]
+VOLUME ["/etc/ldap", "/var/lib/ldap", "/var/run/slapd"]
 
 COPY modules/ /etc/ldap.dist/modules
 COPY initialdb.ldif /etc/ldap.dist/initialdb.ldif
