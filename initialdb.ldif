@@ -1,0 +1,15 @@
+dn: #SLAPD_DOMAINDN#
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: #SLAPD_ORGANIZATION#
+dc: #SLAPD_ROOTDC#
+structuralObjectClass: organization
+
+dn: cn=admin,#SLAPD_DOMAINDN#
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: LDAP administrator
+userPassword:: #SLAPD_PASSWORD#
+structuralObjectClass: organizationalRole

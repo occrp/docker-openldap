@@ -1,6 +1,7 @@
 FROM debian:jessie
 
-MAINTAINER Christian Luginbühl <dinke@pimprecords.com>
+MAINTAINER Michał "rysiek" Woźniak <rysiek@hackerspace.pl>
+# original maintainer Christian Luginbühl <dinke@pimprecords.com>
 
 ENV OPENLDAP_VERSION 2.4.40
 
@@ -14,12 +15,12 @@ RUN mv /etc/ldap /etc/ldap.dist
 
 EXPOSE 389
 
-VOLUME ["/etc/ldap", "/var/lib/ldap"]
+VOLUME ["/etc/ldap", "/var/lib/ldap", "/var/run/slapd/ldapi"]
 
 COPY modules/ /etc/ldap.dist/modules
-
+COPY initialdb.ldif /etc/ldap.dist/initialdb.ldif
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["slapd", "-d", "32768", "-u", "openldap", "-g", "openldap"]
+CMD ["slapd", "-d", "32768", "-u", "openldap", "-g", "openldap", "-h", "ldapi://%2fvar%2frun%2fslapd%2fldapi ldap:///"]
