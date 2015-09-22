@@ -15,7 +15,7 @@ RUN mv /etc/ldap /etc/ldap.dist
 
 EXPOSE 389
 
-VOLUME ["/etc/ldap", "/var/lib/ldap", "/var/run/slapd"]
+VOLUME ["/etc/ldap", "/var/lib/ldap", "/var/run/ldap"]
 
 COPY modules/ /etc/ldap.dist/modules
 COPY initialdb.ldif /etc/ldap.dist/initialdb.ldif
@@ -23,4 +23,4 @@ COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["slapd", "-d", "32768", "-u", "openldap", "-g", "openldap", "-h", "ldapi://%2fvar%2frun%2fslapd%2fldapi ldap:///"]
+CMD ["slapd", "-d", "32768", "-u", "openldap", "-g", "openldap", "-h", "ldapi://%2fvar%2frun%2fldap%2fldapi ldap:///"]

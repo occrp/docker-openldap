@@ -8,8 +8,8 @@ ulimit -n 8192
 set -e
 
 # make sure that the run directory exists and has proper permissions
-mkdir -p /var/run/slapd/
-chown -R openldap:openldap /var/run/slapd/
+mkdir -p /var/run/ldap/
+chown -R openldap:openldap /var/run/ldap/
 
 #
 # if we have config *and* database initialized, skip init
@@ -20,13 +20,20 @@ if [[ -d /etc/ldap/slapd.d ]]; then
     # aye! since config is there, we're ignoring SLAPD_DBPATH and getting the DBPath from config
     SLAPD_DBPATH="$( grep 'olcDbDirectory' /etc/ldap/slapd.d/cn=config/olcDatabase={1}*.ldif | cut -d ' ' -f 2 )"
     
-    # database?
-    if [ -s "$SLAPD_DBPATH/data.mdb" ]; then
+    # database? can be either mdb, hdb/bdb, or ldif!
+    if [ -s "$SLAPD_DBPATH/data.mdb" ] || [ -s "$SLAPD_DBPATH/DB_CONFIG" ] || [ -s "$SLAPD_DBPATH"/*.ldif ]; then
         # aye! skip init!
         SLAPD_SKIP_INIT=1
     fi
 fi
 
+#
+# TODO if there is no config file, but the $SLAPD_DBPATH/ is not empty and
+# contains a slapd database, should we react to it somehow?
+# 
+# skip init?
+# clear the directory?
+# 
 
 # are we supposed to skip init?
 if [ ! -z ${SLAPD_SKIP_INIT+x} ]; then
