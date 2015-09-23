@@ -117,7 +117,7 @@ else
         fi
         
         echo
-        if [ -s /docker-entrypoint-initdb.d/* ]; then
+        if ls /docker-entrypoint-initdb.d/* > /dev/null 2>&1; then
             echo "running scripts from /docker-entrypoint-initdb.d/..."
             for f in /docker-entrypoint-initdb.d/*; do
                 case "$f" in
