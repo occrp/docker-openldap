@@ -115,6 +115,22 @@ else
                 slapadd -n0 -F /etc/ldap/slapd.d -l "/etc/ldap/modules/${module}.ldif" >/dev/null 2>&1
             done
         fi
+        
+        echo
+        if [ -s /docker-entrypoint-initdb.d/* ]; then
+            echo "running scripts from /docker-entrypoint-initdb.d/..."
+            for f in /docker-entrypoint-initdb.d/*; do
+                case "$f" in
+                    # run any shell script found, as root
+                    *.sh)  echo "+-- $0: running $f"; . "$f" ;;
+                    # run any LDIF scripts found, on the first database
+                    *.ldif) echo "+-- $0: running $f"; slapadd -n1 -F /etc/ldap/slapd.d -l "$f" && echo ;;
+                    # ignoring anything else
+                    *)     echo "+-- $0: ignoring $f" ;;
+                esac
+                echo
+            done
+        fi
 
         chown -R openldap:openldap /etc/ldap/slapd.d/
         
