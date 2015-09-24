@@ -104,7 +104,8 @@ else
             IFS=","; declare -a schemas=($SLAPD_ADDITIONAL_SCHEMAS)
 
             for schema in "${schemas[@]}"; do
-                slapadd -n0 -F /etc/ldap/slapd.d -l "/etc/ldap/schema/${schema}.ldif" >/dev/null 2>&1
+                echo "+-- adding schema: $schema..."
+                ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -Y EXTERNAL -f "/etc/ldap/schema/${schema}.ldif" >/dev/null 2>&1
             done
         fi
 
@@ -112,7 +113,8 @@ else
             IFS=","; declare -a modules=($SLAPD_ADDITIONAL_MODULES)
 
             for module in "${modules[@]}"; do
-                slapadd -n0 -F /etc/ldap/slapd.d -l "/etc/ldap/modules/${module}.ldif" >/dev/null 2>&1
+                echo "+-- adding module: $module..."
+                ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -Y EXTERNAL -f "/etc/ldap/modules/${module}.ldif" >/dev/null 2>&1
             done
         fi
         
@@ -124,7 +126,7 @@ else
                     # run any shell script found, as root
                     *.sh)  echo "+-- $0: running $f"; . "$f" ;;
                     # run any LDIF scripts found, on the first database
-                    *.ldif) echo "+-- $0: running $f"; slapadd -n1 -F /etc/ldap/slapd.d -l "$f" && echo ;;
+                    *.ldif) echo "+-- $0: running $f"; ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -x -D cn=admin,dc=slap,dc=test -w "$SLAPD_PASSWORD" -f "$f" && echo ;;
                     # ignoring anything else
                     *)     echo "+-- $0: ignoring $f" ;;
                 esac
