@@ -100,6 +100,21 @@ else
         rm -rf /etc/ldap/slapd.d/*
         slapadd -n0 -F /etc/ldap/slapd.d -l /tmp/config.ldif >/dev/null 2>&1
         
+        # permissions
+        chown -R openldap:openldap /etc/ldap/slapd.d/
+        
+        # at this point we should definitely have working config
+        SLAPD_DBPATH="$( grep 'olcDbDirectory' /etc/ldap/slapd.d/cn=config/olcDatabase={1}*.ldif | cut -d ' ' -f 2 )"
+        # make sure that the database folder exists
+        mkdir -p "$SLAPD_DBPATH"
+        # permissions
+        chown -R openldap:openldap "$SLAPD_DBPATH"
+        
+        # starting slapd, needed for schemas, modules and init scripts
+        slapd -d 32768 -u openldap -g openldap -h "ldapi://%2fvar%2frun%2fldap%2fldapi"
+        SLAPD_PID="$!"
+        
+        # schemas
         if [[ -n "$SLAPD_ADDITIONAL_SCHEMAS" ]]; then
             IFS=","; declare -a schemas=($SLAPD_ADDITIONAL_SCHEMAS)
 
@@ -109,6 +124,7 @@ else
             done
         fi
 
+        # modules
         if [[ -n "$SLAPD_ADDITIONAL_MODULES" ]]; then
             IFS=","; declare -a modules=($SLAPD_ADDITIONAL_MODULES)
 
@@ -118,32 +134,20 @@ else
             done
         fi
         
-        echo
-        if ls /docker-entrypoint-initdb.d/* > /dev/null 2>&1; then
-            echo "running scripts from /docker-entrypoint-initdb.d/..."
-            for f in /docker-entrypoint-initdb.d/*; do
-                case "$f" in
-                    # run any shell script found, as root
-                    *.sh)  echo "+-- $0: running $f"; . "$f" ;;
-                    # run any LDIF scripts found, on the first database
-                    *.ldif) echo "+-- $0: running $f"; ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -x -D cn=admin,dc=slap,dc=test -w "$SLAPD_PASSWORD" -f "$f" && echo ;;
-                    # ignoring anything else
-                    *)     echo "+-- $0: ignoring $f" ;;
-                esac
-                echo
-            done
-        fi
-
-        chown -R openldap:openldap /etc/ldap/slapd.d/
-        
         # TODO FIXME handle SLAPD_PASSWORD also in cn=config for olcRootPW?
+    
+    # if we do have the config, we just need the SLAPD_DBPATH handled, and the server temporarily started
+    else
+        # at this point we should definitely have working config
+        SLAPD_DBPATH="$( grep 'olcDbDirectory' /etc/ldap/slapd.d/cn=config/olcDatabase={1}*.ldif | cut -d ' ' -f 2 )"
+        # make sure that the database folder exists
+        mkdir -p "$SLAPD_DBPATH"
+        # permissions
+        chown -R openldap:openldap "$SLAPD_DBPATH"
+        # starting slapd, needed for init scripts
+        slapd -d 32768 -u openldap -g openldap -h "ldapi://%2fvar%2frun%2fldap%2fldapi"
+        SLAPD_PID="$!"
     fi
-    
-    # at this point we should definitely have working config
-    SLAPD_DBPATH="$( grep 'olcDbDirectory' /etc/ldap/slapd.d/cn=config/olcDatabase={1}*.ldif | cut -d ' ' -f 2 )"
-    
-    # make sure that the database folder exists
-    mkdir -p "$SLAPD_DBPATH"
     
     # handle initial data
     sed -i "s/#SLAPD_DOMAINDN#/$SLAPD_DOMAINDN/" /etc/ldap/initialdb.ldif
@@ -158,16 +162,34 @@ else
     echo
     echo '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'
     
-    slapadd -n1 -F /etc/ldap/slapd.d/ -l /etc/ldap/initialdb.ldif
+    ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -x -D "cn=admin,$SLAPD_DOMAINDN" -w "$SLAPD_PASSWORD" -f /etc/ldap/initialdb.ldif
     rm /etc/ldap/initialdb.ldif
-    # permissions
-    chown -R openldap:openldap "$SLAPD_DBPATH"
+    
+    # init scripts
+    echo
+    if ls /docker-entrypoint-initdb.d/* > /dev/null 2>&1; then
+        echo "running scripts from /docker-entrypoint-initdb.d/..."
+        for f in /docker-entrypoint-initdb.d/*; do
+            case "$f" in
+                # run any shell script found, as root
+                *.sh)  echo "+-- $0: running $f"; . "$f" ;;
+                # run any LDIF scripts found, on the first database
+                *.ldif) echo "+-- $0: running $f"; ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -x -D "cn=admin,$SLAPD_DOMAINDN" -w "$SLAPD_PASSWORD" -f "$f" && echo ;;
+                # ignoring anything else
+                *)     echo "+-- $0: ignoring $f" ;;
+            esac
+            echo
+        done
+    fi
+    
+    # stop the temporary slapd
+    kill -INT "$SLAPD_PID"
     
     # as a cherry on top
     # handle base string in /etc/ldap/ldap.conf
     sed -i "s/^#BASE.*/BASE $SLAPD_DOMAINDN/g" /etc/ldap/ldap.conf
 
-#        slapd slapd/backend select HDB TODO
+    #        slapd slapd/backend select HDB TODO
 
 fi
 
