@@ -111,7 +111,7 @@ else
         chown -R openldap:openldap "$SLAPD_DBPATH"
         
         # starting slapd, needed for schemas, modules and init scripts
-        slapd -u openldap -g openldap -h "ldapi://%2fvar%2frun%2fldap%2fldapi"
+        slapd -d 32768 -u openldap -g openldap -h "ldapi://%2fvar%2frun%2fldap%2fldapi" >/dev/null 2>&1 &
         SLAPD_PID="$!"
         
         # schemas
@@ -145,7 +145,7 @@ else
         # permissions
         chown -R openldap:openldap "$SLAPD_DBPATH"
         # starting slapd, needed for init scripts
-        slapd -u openldap -g openldap -h "ldapi://%2fvar%2frun%2fldap%2fldapi"
+        slapd -d 32768 -u openldap -g openldap -h "ldapi://%2fvar%2frun%2fldap%2fldapi" >/dev/null 2>&1 &
         SLAPD_PID="$!"
     fi
     
