@@ -7,9 +7,11 @@ ulimit -n 8192
 
 set -e
 
-# make sure that the run directory exists and has proper permissions
-mkdir -p /var/run/ldap/
-chown -R openldap:openldap /var/run/ldap/
+# make sure that the run directories exists and has proper permissions
+# - /var/run/ldap  -> ldapi:// UNIX socket
+# - /var/run/slapd -> pidfile directory
+mkdir -p /var/run/ldap/ /var/run/slapd
+chown -R openldap:openldap /var/run/ldap/ /var/run/slapd
 
 #
 # if we have config *and* database initialized, skip init
