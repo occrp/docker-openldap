@@ -180,9 +180,24 @@ else
         for f in /docker-entrypoint-initdb.d/*; do
             case "$f" in
                 # run any shell script found, as root
-                *.sh)  echo "+-- $0: running $f"; . "$f" ;;
+                *.sh)
+                    echo "+-- $0: running $f";
+                    . "$f"
+                    ;;
                 # run any LDIF scripts found, on the first database
-                *.ldif) echo "+-- $0: running $f"; ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -x -D "cn=admin,$SLAPD_DOMAINDN" -w "$SLAPD_PASSWORD" -f "$f" && echo ;;
+                *.ldif) 
+                    echo "+-- $0: running $f";
+                    nf="$( mktemp )";
+                    cp "$f" "$nf";
+                    sed -i "s/#SLAPD_DOMAINDN#/$SLAPD_DOMAINDN/" "$nf";
+                    sed -i "s/#SLAPD_PASSWORD#/$SAFE_SLAPD_PASSWORD_HASH/" "$nf";
+                    sed -i "s/#SLAPD_ORGANIZATION#/$SLAPD_ORGANIZATION/" "$nf";
+                    SLAPD_ROOTDC="$( echo $SLAPD_DOMAIN | cut -d '.' -f 1 )";
+                    sed -i "s/#SLAPD_ROOTDC#/$SLAPD_ROOTDC/" "$nf";
+                    ldapadd -H ldapi://%2fvar%2frun%2fldap%2fldapi -x -D "cn=admin,$SLAPD_DOMAINDN" -w "$SLAPD_PASSWORD" -f "$nf";
+                    rm "$nf";
+                    echo;
+                    ;;
                 # ignoring anything else
                 *)     echo "+-- $0: ignoring $f" ;;
             esac
